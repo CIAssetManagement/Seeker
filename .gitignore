@@ -42,5 +42,6 @@ batch_file.R
 
 # Batch file
 bat.bat
-bat1.bat
-metamorphosis.Rout
+Instrumentos.Rout
+CarteraFondos.Rout
+CurvasBonos.Rout
