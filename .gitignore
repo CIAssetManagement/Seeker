@@ -34,6 +34,8 @@ vignettes/*.pdf
 
 # Keys
 keys.txt
+keys2.txt
+datos.csv
 user.txt
 .Rproj.user
 batch_file.R
