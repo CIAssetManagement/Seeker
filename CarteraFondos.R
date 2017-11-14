@@ -35,7 +35,7 @@ carteras <- function(archivo){
   id <- paste0(df$TV,"-",df$Emisora,"-",df$Serie)
   for(i in seq(1,length(id),1)){
     if(!(df$TV[i] %in% c(" ","CHD") | id[i]=="0-CASITA-*")){
-      df$Costo.Total[i] <- as.numeric(as.character(df$Titulos[i]))*get_prices(Sys.Date()-1,id[i])[1,2]
+      df$Costo.Total[i] <- round(as.numeric(as.character(df$Titulos[i]))*get_prices(Sys.Date()-1,id[i])[1,2],digits=2)
     }
   }
   for(x in unique(df$Fondo)){
