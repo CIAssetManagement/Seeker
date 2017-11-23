@@ -20,7 +20,6 @@ elemento <- function(tv,emisora,serie){
   }
 }
 
-
 carteras <- function(archivo){
   
   datos <- archivo %>% filter(Fondo != " " & Fondo != "Fondo")

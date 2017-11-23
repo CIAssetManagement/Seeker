@@ -55,45 +55,6 @@ calificacion <- function(moodys,sp,fitch,hr){
   return(calificaciones)
 }
 
-curvas <- function(archivo,tipo=NULL){
-  if(tipo %in% c("bonos","cetes")){
-    if(tipo == "bonos"){
-      df <- data.frame(Plazo=archivo$Plazo,Tasa.Nominal=archivo$Tasa.Bruta)
-      w <- "C:/Github/Curvas/Curva_bonos.csv"
-      write.csv(df,w,row.names = FALSE)
-    }
-    if(tipo == "cetes"){
-      df <- data.frame(Plazo=archivo$DP.1,Tasa.Nominal=archivo$Tasa.Rendimiento.I)
-      w <- "C:/Github/Curvas/Curva_cetes.csv"
-      write.csv(df,w,row.names = FALSE)
-    }
-  } else {
-    cat("No se puede definir el tipo de curva")
-    df <- c()
-  }
-}
-
-nodos <- function(archivo){
-  clave <- substr(archivo$clave,1,1)
-  id <- c()
-  
-  for (i in seq(1,length(clave),1)){
-    if(clave[i] == "U" | clave[i] == "M")
-      id <- c(id,"UDI-1")
-    if(clave[i] == "C")
-      id <- c(id,paste0("CETES-",archivo$plazo[i]))
-    if(clave[i] == "T")
-      id <- c(id,paste0("TIIE-",archivo$plazo[i]))
-  }
-  
-  #Query
-  query <- paste0("INSERT INTO nodos ","(id, fecha, nivel)"," VALUES ",
-                  paste(paste(sprintf("('%s','%s','%s')",id,archivo$fecha,archivo$valor_cierre), 
-                              collapse = ",")))
-  cat("Se agregaron los siguientes nodos: ",paste(id),collapse=",")
-  dbSendQuery(mydb,query)
-}
-
 metamorphosis <- function(archivo){
   
   #Archivo must be a txt file
@@ -199,21 +160,6 @@ if(diah(date) == "Habil"){
   a <- paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","CA_VectorAnalitico",clave,".txt")
   archivo <- read.delim(a,header=TRUE,sep="|")
   metamorphosis(archivo)
-  
-  #Alimenta el archivo de curva de Bonos M
-  b <- paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","curva_bonos_",clave,".txt")
-  curva_bonos <- read.delim(b,header=TRUE)
-  curvas(curva_bonos,"bonos")
-  
-  #Alimenta el archivo de curva de CETES
-  c <-  paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","curva_cetes_",clave,".txt")
-  curva_cetes <- read.delim(c,header=TRUE)
-  curvas(curva_cetes,"cetes")
-  
-  #Alimenta la base de datos de nodos (TIIE, CETES y UDI's)
-  d <-  paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","tiies_",clave,".txt")
-  nodo <- read.delim(d,header=TRUE)
-  nodos(nodo)
   
 }else{
   cat("The day has no price or bond information!!!")
