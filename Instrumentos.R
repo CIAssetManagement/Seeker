@@ -157,7 +157,7 @@ if(diah(date) == "Habil"){
   clave <- format(as.Date(date, format="%d/%m/%Y"),"%Y%m%d")
   
   #Alimenta la base de datos de bonos y precios
-  a <- paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","CA_VectorAnalitico",clave,".txt")
+  a <- paste0("//192.168.0.223/VECTORPRECIOS","/",year,"/",month," ",year,"/",day,"/","CA_VectorAnalitico",clave,".txt")
   archivo <- read.delim(a,header=TRUE,sep="|")
   metamorphosis(archivo)
   

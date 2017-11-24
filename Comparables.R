@@ -109,7 +109,7 @@ if(diah(date) == "Habil"){
   day <- format(as.Date(date, format="%d/%m/%Y"),"%d-%m-%Y")
   clave <- format(as.Date(date, format="%d/%m/%Y"),"%Y%m%d")
   
-  a <- paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","CA_VectorAnalitico",clave,".txt")
+  a <- paste0("//192.168.0.223/VECTORPRECIOS","/",year,"/",month," ",year,"/",day,"/","CA_VectorAnalitico",clave,".txt")
   instrumentos <- read.delim(a,header=TRUE,sep="|")
   instrumentos$id <- paste0(instrumentos$TIPO.VALOR,"-",instrumentos$EMISORA,"-",instrumentos$SERIE)
   
