@@ -76,7 +76,7 @@ options(scipen = 999)
 keys <- readLines('keys2.txt')
 mydb = dbConnect(MySQL(), user=keys[1], password=keys[2], dbname='mydb', host=keys[3])
 
-date <- Sys.Date()-2
+date <- Sys.Date()-1
 if(diah(date) == "Habil"){
   
   year <- format(as.Date(date, format="%d/%m/%Y"),"%Y")
