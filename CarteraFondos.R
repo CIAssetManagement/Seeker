@@ -50,7 +50,7 @@ carteras <- function(archivo){
                          CostoTotal=as.numeric(as.character(df$Costo.Total))))
   
   
-  write.xlsx(df,"C:/Github/Simulador/Fondos.xlsx",row.names=FALSE)
+  write.xlsx(df,"C:/Github/Funds/Fondos.xlsx",row.names=FALSE)
   
 }
 
@@ -76,7 +76,7 @@ options(scipen = 999)
 keys <- readLines('keys2.txt')
 mydb = dbConnect(MySQL(), user=keys[1], password=keys[2], dbname='mydb', host=keys[3])
 
-date <- Sys.Date()-1
+date <- Sys.Date()-2
 if(diah(date) == "Habil"){
   
   year <- format(as.Date(date, format="%d/%m/%Y"),"%Y")

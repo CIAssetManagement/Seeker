@@ -120,7 +120,7 @@ if(diah(date) == "Habil"){
   fondos$id <- NULL
   fondos$Comparable <- ifelse(fondos$Comparable == "NA-TOTALES-NA","",fondos$Comparable)
   fondos[is.na(fondos) == TRUE] <- ""
-  write.xlsx(fondos,"C:/Github/Simulador/Fondos.xlsx",row.names=FALSE)
+  write.xlsx(fondos,"C:/Github/Funds/Fondos.xlsx",row.names=FALSE)
   
 }else{
   cat("The day has no price or bond information!!!")

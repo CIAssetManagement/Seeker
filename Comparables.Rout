@@ -15,5 +15,5 @@ Error in file(file, "rt") : no se puede abrir la conexión
 Calls: read.delim -> read.table -> file
 Además: Warning message:
 In file(file, "rt") :
-  no fue posible abrir el archivo '\\192.168.0.223\VECTORPRECIOS\2017\Noviembre 2017\23-11-2017\CA_VectorAnalitico20171123.txt': No such file or directory
+  no fue posible abrir el archivo '//192.168.0.223/VECTORPRECIOS/2017/Noviembre 2017/27-11-2017/CA_VectorAnalitico20171127.txt': No such file or directory
 Ejecución interrumpida
