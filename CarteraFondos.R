@@ -20,7 +20,6 @@ elemento <- function(tv,emisora,serie){
   }
 }
 
-
 carteras <- function(archivo){
   
   datos <- archivo %>% filter(Fondo != " " & Fondo != "Fondo")
@@ -49,9 +48,11 @@ carteras <- function(archivo){
                          Emisora=as.character(df$Emisora),Serie=as.character(df$Serie),
                          Titulos=as.numeric(as.character(df$Titulos)),
                          CostoTotal=as.numeric(as.character(df$Costo.Total))))
+  df$Fondo <- paste0("'",df$Fondo)
+  df$Serie <- paste0("'",df$Serie)
   
   
-  write.xlsx(df,"C:/Github/Simulador/Fondos.xlsx",row.names=FALSE)
+  write.csv(df,"C:/Github/Funds/Fondos.csv")
   
 }
 

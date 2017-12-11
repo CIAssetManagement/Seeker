@@ -64,7 +64,7 @@ curvas <- function(archivo,tipo=NULL){
     }
     if(tipo == "cetes"){
       df <- data.frame(Plazo=archivo$DP.1,Tasa.Nominal=archivo$Tasa.Rendimiento.I)
-      w <- "C:/Github/Curvas/Curva_cetes.csv"
+      w <- "C:/Github/Funds/Curva_cetes.csv"
       write.csv(df,w,row.names = FALSE)
     }
   } else {
@@ -165,7 +165,7 @@ metamorphosis <- function(archivo){
                           Fitch=as.character(archivo$CALIFICACION.FITCH)
                           ,HR=as.character(archivo$HR.RATINGS)))
   df3$Calificacion <- calificacion(df3$Moodys,df3$SP,df3$Fitch,df3$HR)
-  c <- "C:/Github/Simulador/Instrumentos.csv"
+  c <- "C:/Github/Funds/Instrumentos.csv"
   write.csv(df3,c,row.names = FALSE)
 }
 
@@ -196,22 +196,22 @@ if(diah(date) == "Habil"){
   clave <- format(as.Date(date, format="%d/%m/%Y"),"%Y%m%d")
   
   #Alimenta la base de datos de bonos y precios
-  a <- paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","CA_VectorAnalitico",clave,".txt")
+  a <- paste0("//192.168.0.223/VECTORPRECIOS","/",year,"/",month," ",year,"/",day,"/","CA_VectorAnalitico",clave,".txt")
   archivo <- read.delim(a,header=TRUE,sep="|")
   metamorphosis(archivo)
   
   #Alimenta el archivo de curva de Bonos M
-  b <- paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","curva_bonos_",clave,".txt")
+  b <- paste0("//192.168.0.223/VECTORPRECIOS","/",year,"/",month," ",year,"/",day,"/","curva_bonos_",clave,".txt")
   curva_bonos <- read.delim(b,header=TRUE)
   curvas(curva_bonos,"bonos")
   
   #Alimenta el archivo de curva de CETES
-  c <-  paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","curva_cetes_",clave,".txt")
+  c <-  paste0("//192.168.0.223/VECTORPRECIOS","/",year,"/",month," ",year,"/",day,"/","curva_cetes_",clave,".txt")
   curva_cetes <- read.delim(c,header=TRUE)
   curvas(curva_cetes,"cetes")
   
   #Alimenta la base de datos de nodos (TIIE, CETES y UDI's)
-  d <-  paste0("\\\\192.168.0.223\\VECTORPRECIOS","\\",year,"\\",month," ",year,"\\",day,"\\","tiies_",clave,".txt")
+  d <-  paste0("//192.168.0.223/VECTORPRECIOS","/",year,"/",month," ",year,"/",day,"/","tiies_",clave,".txt")
   nodo <- read.delim(d,header=TRUE)
   nodos(nodo)
   
