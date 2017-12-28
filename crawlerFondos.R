@@ -29,7 +29,11 @@ remDr$navigate("http://192.168.0.222:8081/ConsultaCI/cism.aspx")
 selectorRep <- remDr$findElement("id", "ctl00_ContentPlaceHolder1_cmblista")
 selectorRep$clickElement()
 Sys.sleep(1)
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> 79501785eef6ad705e007002dd1fc65412dc7938
 #Enter in Vector Completo
 resumenBtn <- remDr$findElement("xpath", "//*[@value='resumen']")
 resumenBtn$clickElement()
@@ -44,4 +48,9 @@ Sys.sleep(3)
 csesion <- remDr$findElement("xpath","//*[contains(text(), 'Cerrar Sesion')]")
 csesion$clickElement()
 
+<<<<<<< HEAD
 remDr$close()
+=======
+remDr$close()
+ 
+>>>>>>> 79501785eef6ad705e007002dd1fc65412dc7938
