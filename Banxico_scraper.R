@@ -4,14 +4,13 @@
 #                                                             #
 ###############################################################
 file.remove(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"))
+rD <- rsDriver(port = 4568L)
+remDr <- rD$client
 
 #### Tasa Objetivo ####
 remDr$navigate("http://www.banxico.org.mx/SieInternet/consultarDirectorioInternetAction.do?accion=consultarCuadroAnalitico&idCuadro=CA51&sectorDescripcion=Precios&locale=es")
 Sys.sleep(2)
 tasaobjetivo <- remDr$findElement("css selector","#contenedortabla > table:nth-child(3) > tbody > tr:nth-child(11) > td:nth-child(2)")$getElementText()
-
-#### Fondeo Bancario ####
-fondeobancario <- remDr$findElement("css selector","#contenedortabla > table:nth-child(3) > tbody > tr:nth-child(12) > td:nth-child(7)")$getElementText()
 
 #### Fondeo Gubernamental ####
 fondeoguber <- remDr$findElement("css selector","#contenedortabla > table:nth-child(3) > tbody > tr:nth-child(12) > td:nth-child(8)")$getElementText()
@@ -40,10 +39,9 @@ tasaobj <- c("Tasa-Banxico",dia,tasaobjetivo[[1]])
 query <- paste0("INSERT INTO tasas (id,fecha,nivel) VALUES ('",paste(tasaobj,collapse = "','"),"')")
 dbSendQuery(mydb,query)
 
-fondeobanc <- c("Fondeo-BancarioMX",dia,fondeobancario[[1]])
-query <- paste0("INSERT INTO tasas (id,fecha,nivel) VALUES ('",paste(fondeobanc,collapse = "','"),"')")
-dbSendQuery(mydb,query)
-
 fondeogub <- c("Fondeo-GuberMX",dia,fondeoguber[[1]])
 query <- paste0("INSERT INTO tasas (id,fecha,nivel) VALUES ('",paste(fondeogub,collapse = "','"),"')")
 dbSendQuery(mydb,query)
+
+remDr$close()
+rD$server$stop()

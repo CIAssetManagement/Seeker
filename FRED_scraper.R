@@ -15,6 +15,10 @@ file.remove("C:/Users/MATREJO/Downloads/DGS5.csv")
 file.remove("C:/Users/MATREJO/Downloads/DGS2.csv")
 file.remove("C:/Users/MATREJO/Downloads/DGS10.csv")
 
+rD <- rsDriver(port = 4568L)
+remDr <- rD$client
+
+
 #### LIBOR de 12 meses ####
 remDr$navigate("https://fred.stlouisfed.org/series/USD12MD156N")
 Sys.sleep(3)
@@ -63,13 +67,9 @@ Sys.sleep(3)
 remDr$findElement("css selector","#download-button")$clickElement()
 remDr$findElement("css selector","#download-data-csv")$clickElement()
 
-#### Fondeo en Estados Unidos ####
-remDr$navigate("https://fred.stlouisfed.org/series/FEDFUNDS")
-Sys.sleep(3)
-remDr$findElement("css selector","#download-button")$clickElement()
-remDr$findElement("css selector","#download-data-csv")$clickElement()
 
 #### Metiendo a la base de datos ####
+Sys.sleep(2)
 numdatos <- 20
 fechas <- as.character(seq.Date(Sys.Date()-15,Sys.Date()-1,1))
 
@@ -113,12 +113,8 @@ objetivofed <- tail(read.csv("C:/Users/MATREJO/Downloads/DFEDTARU.csv",header = 
   data.frame("Tasa-FED",.,stringsAsFactors = FALSE)
 colnames(objetivofed) <- c("id","fecha","valor")
 
-fondeous <- tail(read.csv("C:/Users/MATREJO/Downloads/FEDFUNDS.csv",header = TRUE,
-                          colClasses = c("character","character")),numdatos) %>%
-  data.frame("Fondeo-BancarioUS",.,stringsAsFactors = FALSE)
-colnames(fondeous) <- c("id","fecha","valor")
-
-df <- rbind(libor1,libor3,libor6,libor12,t10,t5,t2,objetivofed,fondeous)
+df <- rbind(libor1,libor3,libor6,libor12,t10,t5,t2,objetivofed)
+df <- df %>% filter(valor != ".")
 
 for(i in seq(1,length(df$id),1)){
   query1 <- paste0("SELECT id, fecha FROM tasas WHERE id ='",df$id[i],"' AND fecha = '",df$fecha[i],"'")
@@ -128,3 +124,6 @@ for(i in seq(1,length(df$id),1)){
     dbSendQuery(mydb,query2)
   }
 }
+
+remDr$close()
+rD$server$stop()

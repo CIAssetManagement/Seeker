@@ -3,15 +3,21 @@
 #    INEGI -Instituto Nacional de Estadística y Geografía     #
 #                                                             #
 ###############################################################
+#Funciones
+source("funciones.R",local=FALSE)
+
 file.remove(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^INP_INP"),sep = ' ')
+rD <- rsDriver(port = 4568L)
+remDr <- rD$client
 
 #### INPC ####
 remDr$navigate("http://www.inegi.org.mx/sistemas/indiceprecios/Estructura.aspx?idEstructura=112000100010&T=%C3%8Dndices%20de%20Precios%20al%20Consumidor&ST=Principales%20%C3%ADndices")
 Sys.sleep(2)
 remDr$findElement("css selector","#MainContent_wuc_BarraHerramientas1_Panel1 > div > table > tbody > tr > td:nth-child(2) > a:nth-child(4) > img")$clickElement()
+Sys.sleep(2)
 
 #### Metiendo a la base de datos ####
-numdatos <- 263
+numdatos <- 20
 inpc <- tail(read.csv(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^INP_INP"),sep = ' '),numdatos)
 for(x in inpc[,1]){
   datos <- strsplit(as.character(x),",")[[1]]
@@ -44,3 +50,6 @@ for(x in inpc[,1]){
     dbSendQuery(mydb,query3)
   }
 }
+
+remDr$close()
+rD$server$stop()

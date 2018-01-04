@@ -17,15 +17,19 @@ metamorphosis <- function(archivo){
   mercado <- as.character(archivo$MERCADO)
   #Code
   valor <- paste0(archivo$TIPO.VALOR,"-",archivo$EMISORA,"-",archivo$SERIE)
-  #Price 
-  precio <- archivo$PRECIO.SUCIO
+  #Dirty Price 
+  precio_sucio <- archivo$PRECIO.SUCIO
+  #Clean Price
+  precio_limpio <- archivo$PRECIO.LIMPIO
+  #Rate
+  tasa <- archivo$TASA.DE.RENDIMIENTO
   
   #Writing the new file for prices
-  df1 <- data.frame(cbind(fecha,mercado,valor,precio))
-  colnames(df1) <- c("Fecha","Mercado","Instrumento","Precio")
-  
-  query <- paste0("INSERT INTO prices ","(Fecha, Mercado, id, Precio)"," VALUES ",
-                  paste(paste(sprintf("('%s','%s','%s','%s')",df1$Fecha,df1$Mercado,df1$Instrumento,df1$Precio), 
+  df1 <- data.frame(cbind(valor,fecha,mercado,precio_sucio,precio_limpio,tasa))
+  colnames(df1) <- c("Instrumento","Fecha","Mercado","Precio_sucio","Precio_limpio","Tasa")
+  query <- paste0("INSERT INTO prices ","(id,fecha, Mercado,Precio_sucio,Precio_limpio,Tasa)"," VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s','%s','%s','%s')",df1$Instrumento,df1$Fecha,df1$Mercado,
+                                      df1$Precio_sucio,df1$Precio_limpio,df1$Tasa), 
                               collapse = ",")))
   dbSendQuery(mydb,query)
   
@@ -33,48 +37,48 @@ metamorphosis <- function(archivo){
   #Data of bonds
   ###########################################################################
   
-  especiales <- c("BI","I")
-  datos <- archivo %>% filter(archivo$MERCADO=="MD" & archivo$TASA.CUPON>0 | archivo$TIPO.VALOR %in% especiales)
-  #id
-  datos$id <- paste0(datos$TIPO.VALOR,"-",datos$EMISORA,"-",datos$SERIE)
-  #Buscando los id's en la base de datos
-  nombres <- findbond(datos$id)
-  #Agregando los nuevos bonos (si hay nuevos)
-  if(length(nombres) != 0){
-    #Finding the bonds
-    bonos <- datos %>% filter(datos$id %in% nombres)
-    #dates
-    emision <- as.Date(bonos$FECHA.EMISION,format="%d/%m/%Y")
-    emision <- ifelse(is.na(emision)==TRUE,"1900-01-01",as.character(emision))
-    vencimiento <- as.Date(as.character(bonos$FECHA.VCTO),format="%d/%m/%Y")
-    #frequency of coupons
-    frequency <- c()
-    for (i in seq(1,length(bonos$FREC..CPN),1)){
-      if(is.na(bonos$FREC..CPN[i])==TRUE){
-        plazo <- vencimiento[i] - Sys.Date()
-      } else {
-        plazo <- unlist(strsplit(as.character(bonos$FREC..CPN[i])," "))[2]
-      }
-      frequency <- c(frequency,plazo)
-    }
-    #Query
-    query <- paste0("INSERT INTO bonds ","(id, FechaEmision,FechaVencimiento,TasaCupon,TipoTasa,SobreTasa,Frecuencia)"," VALUES ",
-                    paste(paste(sprintf("('%s','%s','%s','%s','%s','%s','%s')",bonos$id,emision,vencimiento,
-                                        bonos$TASA.CUPON,bonos$REGLA.CUPON,bonos$SOBRETASA,frequency), 
-                                collapse = ",")))
-    dbSendQuery(mydb,query)
-    cat("Se agregaron los siguientes bonos: ",paste(nombres),collapse=",")
-  } else {cat("No se agregaron bonos")}
-  
-  #Excel archive of instruments
-  df3 <- data.frame(cbind(TipoValor = as.character(archivo$TIPO.VALOR),Emisora = as.character(archivo$EMISORA),
-                          Serie = as.character(archivo$SERIE), id = as.character(valor),
-                          Moodys=as.character(archivo$MDYS),SP=as.character(archivo$S.P),
-                          Fitch=as.character(archivo$CALIFICACION.FITCH)
-                          ,HR=as.character(archivo$HR.RATINGS)))
-  df3$Calificacion <- calificacion(df3$Moodys,df3$SP,df3$Fitch,df3$HR)
-  c <- "C:/Github/Funds/Instrumentos.csv"
-  write.csv(df3,c,row.names = FALSE)
+  # especiales <- c("BI","I")
+  # datos <- archivo %>% filter(archivo$MERCADO=="MD" & archivo$TASA.CUPON>0 | archivo$TIPO.VALOR %in% especiales)
+  # #id
+  # datos$id <- paste0(datos$TIPO.VALOR,"-",datos$EMISORA,"-",datos$SERIE)
+  # #Buscando los id's en la base de datos
+  # nombres <- findbond(datos$id)
+  # #Agregando los nuevos bonos (si hay nuevos)
+  # if(length(nombres) != 0){
+  #   #Finding the bonds
+  #   bonos <- datos %>% filter(datos$id %in% nombres)
+  #   #dates
+  #   emision <- as.Date(bonos$FECHA.EMISION,format="%d/%m/%Y")
+  #   emision <- ifelse(is.na(emision)==TRUE,"1900-01-01",as.character(emision))
+  #   vencimiento <- as.Date(as.character(bonos$FECHA.VCTO),format="%d/%m/%Y")
+  #   #frequency of coupons
+  #   frequency <- c()
+  #   for (i in seq(1,length(bonos$FREC..CPN),1)){
+  #     if(is.na(bonos$FREC..CPN[i])==TRUE){
+  #       plazo <- vencimiento[i] - Sys.Date()
+  #     } else {
+  #       plazo <- unlist(strsplit(as.character(bonos$FREC..CPN[i])," "))[2]
+  #     }
+  #     frequency <- c(frequency,plazo)
+  #   }
+  #   #Query
+  #   query <- paste0("INSERT INTO bonds ","(id, FechaEmision,FechaVencimiento,TasaCupon,TipoTasa,SobreTasa,Frecuencia)"," VALUES ",
+  #                   paste(paste(sprintf("('%s','%s','%s','%s','%s','%s','%s')",bonos$id,emision,vencimiento,
+  #                                       bonos$TASA.CUPON,bonos$REGLA.CUPON,bonos$SOBRETASA,frequency), 
+  #                               collapse = ",")))
+  #   dbSendQuery(mydb,query)
+  #   cat("Se agregaron los siguientes bonos: ",paste(nombres),collapse=",")
+  # } else {cat("No se agregaron bonos")}
+  # 
+  # #Excel archive of instruments
+  # df3 <- data.frame(cbind(TipoValor = as.character(archivo$TIPO.VALOR),Emisora = as.character(archivo$EMISORA),
+  #                         Serie = as.character(archivo$SERIE), id = as.character(valor),
+  #                         Moodys=as.character(archivo$MDYS),SP=as.character(archivo$S.P),
+  #                         Fitch=as.character(archivo$CALIFICACION.FITCH)
+  #                         ,HR=as.character(archivo$HR.RATINGS)))
+  # df3$Calificacion <- calificacion(df3$Moodys,df3$SP,df3$Fitch,df3$HR)
+  # c <- "C:/Github/Funds/Instrumentos.csv"
+  # write.csv(df3,c,row.names = FALSE)
 }
 ###
 
@@ -107,6 +111,7 @@ diah <-  function(fecha){
   fechabase0 <- as.Date("2017-08-06")
   if(as.integer(fecha - fechabase0 ) %% 7 == 6){dia <- "Inhabil"}
   if(as.integer(fecha - fechabase0 ) %% 7 == 0){dia <- "Inhabil"}
+  if(fecha %in% festivos$dias){dia <- "Inhabil"}
   return(dia)
 }
 
