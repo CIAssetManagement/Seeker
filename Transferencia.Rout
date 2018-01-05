@@ -3,12 +3,12 @@ path_lower = /carpeta del equipo ciestrategias/fondos.csv
 path_display = /Carpeta del equipo CIEstrategias/Fondos.csv 
 parent_shared_folder_id = 1885248112 
 id = id:e2cvGzAKigAAAAAAAAAAHg 
-client_modified = 2017-12-30T10:06:17Z 
-server_modified = 2017-12-30T10:06:17Z 
-rev = 6f705e9a70 
-size = 5156 
+client_modified = 2018-01-05T10:05:55Z 
+server_modified = 2018-01-05T10:05:55Z 
+rev = 76705e9a70 
+size = 5065 
 sharing_info = FALSE 1885248112 dbid:AADaIPCirmAkHMGf0uxs6haQ8Heb9N6qCNo 
-content_hash = e7ec3e3e5505f2fbaf7b0d94544c394bff8f8d075b308de0893c00be79cdb1bc 
+content_hash = cf75fed9433b80b12256b4d5bed24f5deeac8246a68622db148c8aaf5d8f8ae4 
 Warning message:
 In if (value == "") next :
   la condición tiene longitud > 1 y sólo el primer elemento será usado
@@ -28,4 +28,4 @@ In if (value == "") next :
   la condición tiene longitud > 1 y sólo el primer elemento será usado
 > proc.time()
    user  system elapsed 
-   0.59    0.28    4.57 
+   0.60    0.18    4.15 
