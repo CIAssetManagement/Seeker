@@ -3,12 +3,12 @@ path_lower = /carpeta del equipo ciestrategias/fondos.csv
 path_display = /Carpeta del equipo CIEstrategias/Fondos.csv 
 parent_shared_folder_id = 1885248112 
 id = id:e2cvGzAKigAAAAAAAAAAHg 
-client_modified = 2018-01-05T10:05:55Z 
-server_modified = 2018-01-05T10:05:55Z 
-rev = 76705e9a70 
-size = 5065 
+client_modified = 2018-02-23T08:10:31Z 
+server_modified = 2018-02-23T08:10:31Z 
+rev = da705e9a70 
+size = 5219 
 sharing_info = FALSE 1885248112 dbid:AADaIPCirmAkHMGf0uxs6haQ8Heb9N6qCNo 
-content_hash = cf75fed9433b80b12256b4d5bed24f5deeac8246a68622db148c8aaf5d8f8ae4 
+content_hash = 0f753f8083d48537a1b21cb31d9a4ecaeae43948ef0d088a5b968152f308920b 
 Warning message:
 In if (value == "") next :
   la condición tiene longitud > 1 y sólo el primer elemento será usado
@@ -17,15 +17,15 @@ path_lower = /carpeta del equipo ciestrategias/instrumentos.csv
 path_display = /Carpeta del equipo CIEstrategias/Instrumentos.csv 
 parent_shared_folder_id = 1885248112 
 id = id:e2cvGzAKigAAAAAAAAAAHQ 
-client_modified = 2017-12-30T10:06:19Z 
-server_modified = 2017-12-30T10:06:19Z 
-rev = 70705e9a70 
-size = 1290367 
+client_modified = 2018-02-23T08:10:33Z 
+server_modified = 2018-02-23T08:10:34Z 
+rev = db705e9a70 
+size = 1286610 
 sharing_info = FALSE 1885248112 dbid:AADaIPCirmAkHMGf0uxs6haQ8Heb9N6qCNo 
-content_hash = dc765531d2e1bb34277dddf036b0da5e22edbafebf7dfb5cf64d407732a59df6 
+content_hash = cca10e8ffa0923fb11278149d335e37e1f828ebb71279460a767547f59b8fbc5 
 Warning message:
 In if (value == "") next :
   la condición tiene longitud > 1 y sólo el primer elemento será usado
 > proc.time()
    user  system elapsed 
-   0.60    0.18    4.15 
+   0.70    0.35    6.09 

@@ -41,8 +41,9 @@ user.txt
 batch_file.R
 
 # Batch file
-bat.bat
+archivos.bat
 Instrumentos.Rout
 CarteraFondos.Rout
 CurvasBonos.Rout
 Transferencia.Rout
+droptoken.rds
