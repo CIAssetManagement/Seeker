@@ -32,15 +32,12 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
-# Keys
 keys.txt
 keys2.txt
 datos.csv
 user.txt
 .Rproj.user
 batch_file.R
-
-# Batch file
 archivos.bat
 Instrumentos.Rout
 CarteraFondos.Rout
