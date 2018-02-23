@@ -6,10 +6,8 @@
 #Funciones
 source("funciones.R",local=FALSE)
 
-file.remove(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^INP_INP"),sep = ' ')
 rD <- rsDriver(port = 4568L)
 remDr <- rD$client
-
 #### INPC ####
 remDr$navigate("http://www.inegi.org.mx/sistemas/indiceprecios/Estructura.aspx?idEstructura=112000100010&T=%C3%8Dndices%20de%20Precios%20al%20Consumidor&ST=Principales%20%C3%ADndices")
 Sys.sleep(2)
@@ -53,3 +51,4 @@ for(x in inpc[,1]){
 
 remDr$close()
 rD$server$stop()
+file.remove(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^INP_INP"))

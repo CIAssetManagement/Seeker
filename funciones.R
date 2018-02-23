@@ -2,7 +2,7 @@
 ######################## Funciones que agregan elementos a las tablas ###################################
 
 ### Función que alimenta la tabla de prices con los precios y niveles de los instrumentos en la BMV.
-metamorphosis <- function(archivo){
+metamorphosis <- function(archivo,referencia){
   
   #Archivo must be a txt file
   
@@ -13,10 +13,13 @@ metamorphosis <- function(archivo){
   #Date of the data
   dia <- as.Date(as.character(archivo$FECHA[1]),"%Y%m%d")
   fecha <- as.character(as.Date(as.character(archivo$FECHA),"%Y%m%d"))
+  if(length(fecha) == 0)
+    fecha <- as.character(as.Date(as.character(archivo$Fecha),"%Y%m%d"))
   #Type of market
   mercado <- as.character(archivo$MERCADO)
   #Code
   valor <- paste0(archivo$TIPO.VALOR,"-",archivo$EMISORA,"-",archivo$SERIE)
+  
   #Dirty Price 
   precio_sucio <- archivo$PRECIO.SUCIO
   #Clean Price
@@ -37,7 +40,7 @@ metamorphosis <- function(archivo){
   #Data of bonds
   ###########################################################################
   
-  especiales <- c("BI","I")
+  especiales <- c("BI","I","MC")
   datos <- archivo %>% filter(archivo$MERCADO=="MD" & archivo$TASA.CUPON>0 | archivo$TIPO.VALOR %in% especiales)
   #id
   datos$id <- paste0(datos$TIPO.VALOR,"-",datos$EMISORA,"-",datos$SERIE)
@@ -51,6 +54,16 @@ metamorphosis <- function(archivo){
     emision <- as.Date(bonos$FECHA.EMISION,format="%d/%m/%Y")
     emision <- ifelse(is.na(emision)==TRUE,"1900-01-01",as.character(emision))
     vencimiento <- as.Date(as.character(bonos$FECHA.VCTO),format="%d/%m/%Y")
+    if(length(vencimiento) == 0)
+     vencimiento <- as.Date(as.character(bonos$FECHA.DE.VENCIMIENTO),format="%d/%m/%Y")
+    monto_emitido <- as.numeric(bonos$MONTO.EMITIDO)
+    monto_emitido <- ifelse(is.na(monto_emitido) == TRUE,0,monto_emitido)
+    #Reference rate
+    tasa_referencia <- c()
+    for(i in seq(1,length(bonos$FREC..CPN),1)){
+      indiceref <- which(paste0(referencia$TV,"-",referencia$EMISION,"-",referencia$SERIE) == bonos$id[i])
+      tasa_referencia <- c(tasa_referencia,as.character(referencia$`TASA DE REFERENCIA`[indiceref]))
+    }
     #frequency of coupons
     frequency <- c()
     for (i in seq(1,length(bonos$FREC..CPN),1)){
@@ -62,10 +75,11 @@ metamorphosis <- function(archivo){
       frequency <- c(frequency,plazo)
     }
     #Query
-    query <- paste0("INSERT INTO bonds ","(id, FechaEmision,FechaVencimiento,TasaCupon,TipoTasa,SobreTasa,Frecuencia)"," VALUES ",
-                    paste(paste(sprintf("('%s','%s','%s','%s','%s','%s','%s')",bonos$id,emision,vencimiento,
-                                        bonos$TASA.CUPON,bonos$REGLA.CUPON,bonos$SOBRETASA,frequency),
+    query <- paste0("INSERT INTO bonds ","(id, FechaEmision,FechaVencimiento,TasaCupon,TipoTasa,SobreTasa,Frecuencia,MontoEmitido)",
+                    " VALUES ",paste(paste(sprintf("('%s','%s','%s','%s','%s','%s','%s','%s')",bonos$id,emision,vencimiento,
+                                        bonos$TASA.CUPON,tasa_referencia,bonos$SOBRETASA,frequency,monto_emitido),
                                 collapse = ",")))
+    
     dbSendQuery(mydb,query)
     cat("Se agregaron los siguientes bonos: ",paste(nombres),collapse=",")
   } else {cat("No se agregaron bonos")}
@@ -82,26 +96,141 @@ metamorphosis <- function(archivo){
 }
 ###
 
-### Función que agrega los nodos de CETES y TIIES a la tabla tasas
-nodos <- function(archivo){
-  clave <- substr(archivo$clave,1,1)
+### Función que agrega los nodos de la curva de CETES, BONOS y algunos nodos de la TIIE a la tabla tasas
+nodos <- function(fecha,nodo,bonos,cetes,ums,libor,reales){
+  clave <- substr(nodo$clave,1,1)
   id <- c()
   
   for (i in seq(1,length(clave),1)){
-    if(clave[i] == "C")
-      id <- c(id,paste0("CETES-",archivo$plazo[i]))
-    if(clave[i] == "T")
-      id <- c(id,paste0("TIIE-",archivo$plazo[i]))
+    id <- c(id,paste0("TIIE-",nodo$plazo[i]))
   }
-  archivo$fecha <- format(as.Date(archivo$fecha,format='%d/%m/%Y'),'%Y-%m-%d')
+  nodo$fecha <- format(as.Date(nodo$fecha,format='%d/%m/%Y'),'%Y-%m-%d')
   #Query
   query <- paste0("INSERT INTO tasas ","(id, fecha, nivel)"," VALUES ",
-                  paste(paste(sprintf("('%s','%s','%s')",id,archivo$fecha,archivo$valor_cierre), 
+                  paste(paste(sprintf("('%s','%s','%s')",id,nodo$fecha,nodo$valor_cierre), 
                               collapse = ",")))
   cat("Se agregaron los siguientes nodos: ",paste(id),collapse=",")
   dbSendQuery(mydb,query)
+  #CETEs
+  df <- data.frame(id=paste0("CETES-",cetes$X__4),fecha=rep(fecha,length(cetes$X__4)),
+                   nivel=cetes$X__6)
+  query <- paste0("INSERT INTO tasas ","(id, fecha, nivel)"," VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s')",df$id,df$fecha,df$nivel), 
+                              collapse = ",")))
+  dbSendQuery(mydb,query)
+  #Bonos
+  df2 <- data.frame(id=paste0("BONOS-",bonos$Plazo),fecha=rep(fecha,length(bonos$Plazo)),
+                   nivel=bonos$X__2)
+  query <- paste0("INSERT INTO tasas ","(id, fecha, nivel)"," VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s')",df2$id,df2$fecha,df2$nivel), 
+                              collapse = ",")))
+  dbSendQuery(mydb,query)
+  #UMS
+  df3 <- data.frame(id=paste0("UMS-",ums$Plazo),fecha=rep(fecha,length(ums$Plazo)),
+                    nivel=ums$Tasa)
+  query <- paste0("INSERT INTO tasas ","(id, fecha, nivel)"," VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s')",df3$id,df3$fecha,df3$nivel), 
+                              collapse = ",")))
+  dbSendQuery(mydb,query)
+  #Libor
+  df4 <- data.frame(id=paste0("LIBOR-",libor$Plazo),fecha=rep(fecha,length(libor$Plazo)),
+                    nivel=libor$X__1)
+  query <- paste0("INSERT INTO tasas ","(id, fecha, nivel)"," VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s')",df4$id,df4$fecha,df4$nivel), 
+                              collapse = ",")))
+  dbSendQuery(mydb,query)
+  #Tasa Real
+  df5 <- data.frame(id=paste0("TREAL-",reales$Plazo),fecha=rep(fecha,length(reales$Plazo)),
+                    nivel=reales$X__1)
+  query <- paste0("INSERT INTO tasas ","(id, fecha, nivel)"," VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s')",df5$id,df5$fecha,df5$nivel), 
+                              collapse = ",")))
+  dbSendQuery(mydb,query)
 }
-###
+
+### Función que agrega las carteras de los contratos
+portafolios <- function(archivo){
+  archivo <- archivo %>% filter(Importe > 0)
+  efectivo <- archivo %>% filter(Tipo %in% c('E','R')) %>% summarise(Efectivo=sum(Importe))
+  archivo <- archivo %>% filter(Tipo %in% c('D','E'))
+  archivo[is.na(archivo) == TRUE] <- ''
+  archivo$Fecha <- as.Date(archivo$Fecha,format = '%d/%M/%Y')
+  indices <- which(archivo$Emisora == 'EFECTIVO')
+  archivo$Importe[indices[1]] <- efectivo$Efectivo
+  if(length(indices) > 1)
+    archivo <- archivo[-indices[-1],]
+  instrumento <- paste0(archivo$TipoValor,"-",archivo$Emisora,"-",gsub("'","",archivo$Serie))
+  query <- paste0("INSERT INTO portafolios (fecha,contrato,instrumento,titulos,costo,monto) VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s','%s','%s','%s')",archivo$Fecha,archivo$CContrato,
+                                      instrumento,archivo$Titulos,archivo$Costo,archivo$Importe),collapse = ",")))
+  dbSendQuery(mydb,query)
+}
+
+### Función que llena la tabla de comisiones y obtiene los archivos necesarios para la app comparador de fondos.
+comparador <- function(fecha){
+  
+  #Metiendo a la base de datos las comisiones
+  comisiones <- read_excel('C:/Users/MATREJO/Downloads/economatica.xlsx',skip = 2)
+  instrumentos <- drop_read_csv('Carpeta del equipo CIEstrategias/Instrumentos.csv',header = TRUE,stringsAsFactors = FALSE)
+  id <- c()
+  indices <- c()
+  for(i in seq(1,length(comisiones$Nombre),1)){
+    indices1 <- which(instrumentos$Emisora == toupper(comisiones$Nombre[i]))
+    indices2 <- which(instrumentos$Serie == comisiones$Clase[i])
+    indice <- intersect(indices1,indices2)
+    if(length(indice) != 0){
+      id <- c(id, instrumentos$id[indice])
+      indices <- c(indices,i)
+    }
+  }
+  datos <- data.frame(date, id, comisiones[indices,15])
+  colnames(datos) <- c('fecha','id','comisiones')
+  datos$comisiones[which(datos$comisiones == "-")] <- "0"
+  datos$comisiones <- ifelse(datos$id == "51-INVEXCP-A",as.numeric(datos$comisiones)*100,datos$comisiones)
+  query <- paste0("INSERT INTO comisiones (fecha,fondo,comision_admin) VALUES ",
+                  paste(paste(sprintf("('%s','%s','%s')", datos$fecha,datos$id,datos$comisiones)
+                              ,collapse = ",")))
+  dbSendQuery(mydb,query)
+  
+  #Creando los archivos que necesita la app comparador de fondos
+  datos <- read_excel("C:/Github/ComparadorFondos/comparables.xlsx")
+  bench_tasas <- c('Fondeo-GuberMX','CETES-364')
+  ciusdclaves <- c('*CSP-MXPUSDS-V48','51-+CIUSD-A','51-INVEXCO-A','51-+TASAUS-A','52-SURUSD-A','51-SBANKDL-A',
+                   '51-NTEDLS-A')
+  tasas <- datos[which(datos$Clave %in% bench_tasas),]
+  ciusd <- datos[which(datos$Clave %in% ciusdclaves),]
+  datos <- datos[-which(datos$Clave %in% bench_tasas | datos$Clave %in% ciusdclaves),]
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE id IN ('",paste(datos$Clave,collapse = "','"),"')")
+  data <- dbGetQuery(mydb,query)
+  query <- paste0("SELECT id,fecha,nivel FROM tasas WHERE id IN ('",paste(tasas$Clave,collapse = "','"),"')")
+  data2 <- dbGetQuery(mydb,query)
+  colnames(data2) <- c('id','fecha','Precio_limpio')
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE id IN ('",paste(ciusd$Clave,collapse = "','"),"')")
+  data3 <- dbGetQuery(mydb,query)
+  indiceprecio <- which(data3$id == "*CSP-MXPUSDS-V48")
+  for(i in seq(1,length(data3$id),1)){
+    if(data3$id[i] != "*CSP-MXPUSDS-V48"){
+      indicefechas <- which(data3$fecha == data3$fecha[i])
+      indicesusd <- intersect(indicefechas,indiceprecio)
+      if(length(indicesusd) != 0)
+        data3$Precio_limpio[i] <- data3$Precio_limpio[i]/data3$Precio_limpio[indicesusd]
+    } else {
+      data3$fecha[i] <- as.character(diausd(as.Date(data3$fecha[i])))
+    }
+  }
+  data <- rbind(data,data2,data3)
+  write.csv(data,'C:/Github/ComparadorFondos/precios.csv',row.names = FALSE)
+  
+  query <- paste0("SELECT fecha,fondo,comision_admin FROM comisiones WHERE fondo IN ('",
+                  paste(unique(data$id),collapse = "','"),"')")
+  data <- dbGetQuery(mydb,query)
+  
+  write.csv(data,'C:/Github/ComparadorFondos/comisiones.csv',row.names = FALSE)
+  isr <- read_excel('C:/Github/ComparadorFondos/isr.xlsx')
+  isr <- data.frame(rbind(isr,data.frame(Fecha = as.character(fecha), ISR = as.character(isr$ISR[length(isr$ISR)]))))
+  archivom <- 'C:/Github/ComparadorFondos/isr.xlsx'
+  write.xlsx2(isr,archivom,col.names = TRUE,row.names = FALSE,append = FALSE)
+}
 
 ########################################## Funciones de soporte #########################################
 
@@ -181,21 +310,21 @@ elemento <- function(tv,emisora,serie){
 }
 
 # Función que crea el archivo de carteras diario.
-carteras <- function(archivo){
+carteras <- function(archivo,fecha){
   
   datos <- archivo %>% filter(Fondo != " " & Fondo != "Fondo")
   df <- datos[,c(1,2,3,4,5,9,10)]
+  df[is.na(df)] <- ""
   colnames(df) <- c("I","Fondo","TV","Emisora","Serie","Titulos","Costo.Total")
   
   #Function to assure the instruments are right(Covaf does it wrong cause they use xlsx files, not csv)
-  serie <- mapply(elemento,df$TV,df$Emisora,df$Serie)
   df$Serie <- mapply(elemento,df$TV,df$Emisora,df$Serie)
   
   df$Costo.Total <- as.numeric(as.character(df$Costo.Total))
   id <- as.character(paste0(df$TV,"-",df$Emisora,"-",df$Serie))
   for(i in seq(1,length(id),1)){
-    if(!(df$TV[i] %in% c(" ","CHD") | id[i]=="0-CASITA-*")){
-      df$Costo.Total[i] <- round(as.numeric(as.character(df$Titulos[i]))*get_prices(Sys.Date()-1,id[i])[1,2],digits=2)
+    if(!(df$TV[i] %in% c(" ","CHD") | id[i]=="0-CASITA-*" | df$Emisora[i] == "TOTALES")){
+      df$Costo.Total[i] <- round(as.numeric(as.character(df$Titulos[i]))*get_prices(fecha,id[i])[1,2],digits=2)
     }
   }
   for(x in unique(df$Fondo)){
@@ -229,4 +358,48 @@ fechas <- function(dato){
     fecha <- paste0(componentes[3],"-",mes,"-","15")
   }
   return(fecha)
+}
+
+#Función que obtiene los archivos necesarios para la app de portafolios
+portafolios2 <- function(fecha){
+  v_fechas <- seq(as.Date(paste0(as.numeric(substr(fecha,1,4))-1,"-01-01")),fecha,by = "1 day")
+  #Cartera del día
+  query <- paste0("SELECT * FROM portafolios WHERE fecha = '",fecha,"'")
+  datos <- dbGetQuery(mydb,query)
+  write.csv(datos,"C:/Github/Portafolios/Carteras_imss.csv",row.names = FALSE)
+  #calificaciones de los instrumentos
+  datos <- datos %>% filter(instrumento != '-EFECTIVO-')
+  instrumentos <- unique(datos$instrumento)
+  inst_imss <- drop_read_csv('Carpeta del equipo CIEstrategias/Instrumentos.csv',header=TRUE,stringsAsFactors = FALSE)
+  posibles <- drop_read_csv('Carpeta del equipo CIEstrategias/mercados.csv',header=TRUE,stringsAsFactors = FALSE)
+  posibles <- unique(posibles$imss)
+  inst_imss <- inst_imss %>% filter(TipoValor %in% posibles)
+  write.csv(inst_imss,"C:/Github/Portafolios/Calificaciones.csv",row.names = FALSE)
+  #Precios de los instrumentos
+  instrumentos <- c(instrumentos,inst_imss$id)
+  query2 <- paste0("SELECT id,fecha,Precio_limpio,Tasa FROM prices WHERE id IN ('",paste(instrumentos,collapse = "','")
+                   ,"') AND fecha IN ('",paste(v_fechas,collapse = "','"),"')")
+  precios <- dbGetQuery(mydb,query2)
+  write.csv(precios,"C:/Github/Portafolios/Precios.csv",row.names = FALSE)
+  query3 <- paste0("SELECT * FROM bonds WHERE id IN ('",paste(instrumentos,collapse = "','"),"')")
+  bonos <- dbGetQuery(mydb,query3)
+  #Información de los bonos
+  write.csv(bonos,"C:/Github/Portafolios/Bonos.csv",row.names = FALSE)
+  #Saldo histórico de las carteras
+  query4 <- paste0("SELECT fecha,contrato,monto FROM portafolios WHERE fecha IN ('",paste(v_fechas,collapse = "','"),
+                   "')")
+  historico <- dbGetQuery(mydb,query4)
+  historico <- historico %>% group_by(fecha, contrato) %>% summarise(Monto =sum(monto))
+  write.csv(historico,"C:/Github/Portafolios/historico.csv",row.names = FALSE)
+}
+
+#Función que suma un dia para el tipo de cambio
+diausd <- function(fecha){
+  fecha <- fecha +1
+  fechabase0 <- as.Date("2017-08-06")
+  if(as.integer(fecha - fechabase0 ) %% 7 == 6 | as.integer(fecha - fechabase0 ) %% 7 == 0 | fecha %in% festivos$dias){
+    return(diausd(fecha))
+  } else {
+      return(fecha)
+    }
 }

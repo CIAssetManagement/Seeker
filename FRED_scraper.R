@@ -4,17 +4,6 @@
 #                                                             #
 ###############################################################
 
-#### Eliminando los archivos anteriores ####
-file.remove("C:/Users/MATREJO/Downloads/USD1MTD156N.csv")
-file.remove("C:/Users/MATREJO/Downloads/USD3MTD156N.csv")
-file.remove("C:/Users/MATREJO/Downloads/USD6MTD156N.csv")
-file.remove("C:/Users/MATREJO/Downloads/USD12MD156N.csv")
-file.remove("C:/Users/MATREJO/Downloads/DFEDTARU.csv")
-file.remove("C:/Users/MATREJO/Downloads/FEDFUNDS.csv")
-file.remove("C:/Users/MATREJO/Downloads/DGS5.csv")
-file.remove("C:/Users/MATREJO/Downloads/DGS2.csv")
-file.remove("C:/Users/MATREJO/Downloads/DGS10.csv")
-
 rD <- rsDriver(port = 4568L)
 remDr <- rD$client
 
@@ -127,3 +116,13 @@ for(i in seq(1,length(df$id),1)){
 
 remDr$close()
 rD$server$stop()
+
+#### Eliminando los archivos####
+file.remove("C:/Users/MATREJO/Downloads/USD1MTD156N.csv")
+file.remove("C:/Users/MATREJO/Downloads/USD3MTD156N.csv")
+file.remove("C:/Users/MATREJO/Downloads/USD6MTD156N.csv")
+file.remove("C:/Users/MATREJO/Downloads/USD12MD156N.csv")
+file.remove("C:/Users/MATREJO/Downloads/DFEDTARU.csv")
+file.remove("C:/Users/MATREJO/Downloads/DGS5.csv")
+file.remove("C:/Users/MATREJO/Downloads/DGS2.csv")
+file.remove("C:/Users/MATREJO/Downloads/DGS10.csv")
