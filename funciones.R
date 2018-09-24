@@ -54,6 +54,7 @@ metamorphosis <- function(archivo,referencia){
     emision <- as.Date(bonos$FECHA.EMISION,format="%d/%m/%Y")
     emision <- ifelse(is.na(emision)==TRUE,"1900-01-01",as.character(emision))
     vencimiento <- as.Date(as.character(bonos$FECHA.VCTO),format="%d/%m/%Y")
+    vencimiento <- ifelse(is.na(vencimiento)==TRUE,"1900-01-01",as.character(vencimiento))
     if(length(vencimiento) == 0)
      vencimiento <- as.Date(as.character(bonos$FECHA.DE.VENCIMIENTO),format="%d/%m/%Y")
     monto_emitido <- as.numeric(bonos$MONTO.EMITIDO)
@@ -68,7 +69,7 @@ metamorphosis <- function(archivo,referencia){
     frequency <- c()
     for (i in seq(1,length(bonos$FREC..CPN),1)){
       if(is.na(bonos$FREC..CPN[i])==TRUE){
-        plazo <- vencimiento[i] - Sys.Date()
+        plazo <- as.Date(vencimiento[i]) - Sys.Date()
       } else {
         plazo <- unlist(strsplit(as.character(bonos$FREC..CPN[i])," "))[2]
       }
@@ -148,7 +149,7 @@ nodos <- function(fecha,nodo,bonos,cetes,ums,libor,reales){
   dbSendQuery(mydb,query)
 }
 
-### Función que agrega las carteras de los contratos
+### Función que agrega las carteras de los contratos CIASIA e IMSS
 portafolios <- function(archivo){
   archivo <- archivo %>% filter(Importe > 0)
   efectivo <- archivo %>% filter(Tipo %in% c('E','R')) %>% summarise(Efectivo=sum(Importe))
@@ -181,12 +182,21 @@ comparador <- function(fecha){
     if(length(indice) != 0){
       id <- c(id, instrumentos$id[indice])
       indices <- c(indices,i)
+      if(length(id) != length(indices)){
+        if(length(id) > length(indices))
+          indices <- c(indices,i)
+        if(length(id) < length(indices))
+          id <- c(id, instrumentos$id[indice])
+      }
     }
   }
   datos <- data.frame(date, id, comisiones[indices,15])
   colnames(datos) <- c('fecha','id','comisiones')
   datos$comisiones[which(datos$comisiones == "-")] <- "0"
-  datos$comisiones <- ifelse(datos$id == "51-INVEXCP-A",as.numeric(datos$comisiones)*100,datos$comisiones)
+  
+  #Multiplicando por 100 las comisiones if needed
+  #datos$comisiones <- ifelse(datos$id == "51-INVEXCP-A",as.numeric(datos$comisiones)*100,datos$comisiones)
+  
   query <- paste0("INSERT INTO comisiones (fecha,fondo,comision_admin) VALUES ",
                   paste(paste(sprintf("('%s','%s','%s')", datos$fecha,datos$id,datos$comisiones)
                               ,collapse = ",")))
@@ -195,17 +205,17 @@ comparador <- function(fecha){
   #Creando los archivos que necesita la app comparador de fondos
   datos <- read_excel("C:/Github/ComparadorFondos/comparables.xlsx")
   bench_tasas <- c('Fondeo-GuberMX','CETES-364')
-  ciusdclaves <- c('*CSP-MXPUSDS-V48','51-+CIUSD-A','51-INVEXCO-A','51-+TASAUS-A','52-SURUSD-A','51-SBANKDL-A',
-                   '51-NTEDLS-A')
+  usdclaves <- c('*CSP-MXPUSDS-V48','51-+CIUSD-A','51-INVEXCO-A','51-+TASAUS-A','52-SURUSD-A','51-SBANKDL-A',
+                   '51-NTEDLS-A', '52-+CIEQUS-A','52-SCOTUSA-A','52-NTE+USA-A','52-ACTI500-A')
   tasas <- datos[which(datos$Clave %in% bench_tasas),]
-  ciusd <- datos[which(datos$Clave %in% ciusdclaves),]
-  datos <- datos[-which(datos$Clave %in% bench_tasas | datos$Clave %in% ciusdclaves),]
+  usd <- datos[which(datos$Clave %in% usdclaves),]
+  datos <- datos[-which(datos$Clave %in% bench_tasas | datos$Clave %in% usdclaves),]
   query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE id IN ('",paste(datos$Clave,collapse = "','"),"')")
   data <- dbGetQuery(mydb,query)
   query <- paste0("SELECT id,fecha,nivel FROM tasas WHERE id IN ('",paste(tasas$Clave,collapse = "','"),"')")
   data2 <- dbGetQuery(mydb,query)
   colnames(data2) <- c('id','fecha','Precio_limpio')
-  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE id IN ('",paste(ciusd$Clave,collapse = "','"),"')")
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE id IN ('",paste(usd$Clave,collapse = "','"),"')")
   data3 <- dbGetQuery(mydb,query)
   indiceprecio <- which(data3$id == "*CSP-MXPUSDS-V48")
   for(i in seq(1,length(data3$id),1)){
@@ -230,6 +240,15 @@ comparador <- function(fecha){
   isr <- data.frame(rbind(isr,data.frame(Fecha = as.character(fecha), ISR = as.character(isr$ISR[length(isr$ISR)]))))
   archivom <- 'C:/Github/ComparadorFondos/isr.xlsx'
   write.xlsx2(isr,archivom,col.names = TRUE,row.names = FALSE,append = FALSE)
+  
+  fondos <- c(data$fondo %in% c(datos$Clave[which(datos$Operadora == "CI Fondos")],"51-+CIUSD-A","52-+CIEQUS-A"))
+  data <- data[fondos,]
+  file <- "//192.168.0.223//CIFONDOS/benchmarks_trimestrales.xlsm"
+  workbook <- loadWorkbook(file)
+  removeSheet(workbook,"Comisiones")
+  new_sheet <- createSheet(workbook,"Comisiones")
+  addDataFrame(data,new_sheet,row.names = FALSE)
+  saveWorkbook(workbook,file)
 }
 
 ########################################## Funciones de soporte #########################################
@@ -246,7 +265,12 @@ diah <-  function(fecha){
 
 # Función que encuentra los mínimos en un renglón quitando los NA's.
 minimos <- function(renglon){
-  return(min(renglon,na.rm=TRUE))
+  nnas <- sum(is.na(renglon))
+  if(nnas >= length(renglon)){
+    return(NA)
+  } else {
+    return(min(renglon,na.rm=TRUE))
+  }
 }
 
 # Calificaciones basadas en Moodys, S&P, Fitch y HR Ratings.
@@ -275,7 +299,7 @@ calificacion <- function(moodys,sp,fitch,hr){
   df <- data.frame(matrix(valores,ncol=4,byrow = FALSE))
   calif <- apply(df,1,minimos)
   
-  valor <- read.csv("datos.csv",header=FALSE)
+  valor <- read.csv("calificaciones_datos.csv",header=FALSE)
   calificaciones <- as.character(valor$V2[match(calif,valor$V1)])
   calificaciones <- ifelse(is.na(calificaciones)==TRUE,"-",calificaciones)
   return(calificaciones)
@@ -393,13 +417,195 @@ portafolios2 <- function(fecha){
   write.csv(historico,"C:/Github/Portafolios/historico.csv",row.names = FALSE)
 }
 
-#Función que suma un dia para el tipo de cambio
+#Función que obtiene los archivos necesarios para la app de rendimientos de los promotores
+rendimientos_promocion <- function(fecha){
+  fechas <- seq_Date("20140101/")
+  instrumentos <- drop_read_csv('Carpeta del equipo CIEstrategias/Instrumentos.csv',header = TRUE,stringsAsFactors = FALSE)
+  instrumentos <- instrumentos %>% filter(instrumentos$TipoValor %in% c('1ISP','RC',51,52) | 
+                                            id %in% c("*CSP-MXPUSDS-V48","*CSP-MXPEUR-V48"))
+  query <- paste0("SELECT id,fecha,Precio_sucio FROM prices WHERE id IN ('",paste(instrumentos$id,collapse = "','"),
+                  "') AND fecha IN ('",paste(fechas,collapse = "','"),"')")
+  precios <- dbGetQuery(mydb,query)
+  save(precios,file = "C:/Github/ModelosCarteras/precios.rds")
+  dolar <- as.numeric(get_prices(fecha,"*CSP-MXPUSDS-V48"))[2]
+  save(dolar, file = "C:/Github/ModelosCarteras/dolar.rds")
+  euro <- as.numeric(get_prices(fecha,"*CSP-MXPEUR-V48"))[2]
+  save(euro, file = "C:/Github/ModelosCarteras/euro.rds")
+}
+
+#Función que obtiene los archivos necesarios para la app de rendimientos de los clientes
+rendimientos_clientes <- function(){
+  posiciones <- get_position(seq_Date("20140101/"))
+  posiciones <- posiciones[c("fecha","contrato","carteramodelo","reporto","tipo","id","precio","tit")]
+  save(posiciones,file = "C:/Github/ModelosRendimientos/posiciones.rds")
+  
+  fn <- "depositos_retiros.txt"
+  if (file.exists(fn)) file.remove(fn)
+  system(paste0('"C:/Program Files (x86)/FIDEM/AM/AmConsola.exe" "2|cism_batch|Nueva2015|8|depositos_retiros|',
+                'C:/Github/Seeker', '|depositos_retiros|"'))
+  depositos_retiros <- read.table("depositos_retiros.txt",sep = ",")
+  colnames(depositos_retiros) <- c("Fecha","contrato","Operacion","Monto","Instrumento")
+  depositos_retiros$Fecha <- as.Date(depositos_retiros$Fecha,format = '%d/%m/%Y')
+  depositos_retiros$Instrumento <- gsub("/","-",depositos_retiros$Instrumento)
+  save(depositos_retiros, file = "C:/Github/ModelosRendimientos/depositos_retiros.rds")
+}
+
+#Función que agrega un día para el tipo de cambio
 diausd <- function(fecha){
-  fecha <- fecha +1
+  fecha <- fecha + 1
   fechabase0 <- as.Date("2017-08-06")
   if(as.integer(fecha - fechabase0 ) %% 7 == 6 | as.integer(fecha - fechabase0 ) %% 7 == 0 | fecha %in% festivos$dias){
     return(diausd(fecha))
   } else {
       return(fecha)
     }
+}
+#Función que devuelve el dia hábil inmediato anterior
+diabench <- function(fecha){
+  fechabase0 <- as.Date("2017-08-06")
+  if(as.integer(fecha - fechabase0 ) %% 7 == 6 | as.integer(fecha - fechabase0 ) %% 7 == 0 | fecha %in% festivos$dias){
+    return(diabench(fecha-1))
+  } else {
+    return(fecha)
+  }
+}
+
+########################################## Funciones de los benchmarks #########################################
+
+archivos_bench <- function(date){
+  #Rendimientos benchmarks
+  query <- paste0("SELECT id,fecha,tasa FROM indices WHERE fecha >'",as.Date(paste0(as.numeric(year)-2,"-01-01")),"'")
+  datos <- dbGetQuery(mydb,query)
+  file <- "//192.168.0.223//CIFONDOS/benchmarks.xlsx"
+  workbook <- loadWorkbook(file)
+  removeSheet(workbook,"CETES-364")
+  new_sheet <- createSheet(workbook,"CETES-364")
+  addDataFrame(datos,new_sheet,row.names = FALSE)
+  saveWorkbook(workbook,file)
+  
+  #Rendimientos benchmarks trimestrales
+  # fechas <- sapply(seq(date,by = "-1 month",length.out = 36),diabench) %>%
+  #   as.Date(origin = "1970-01-01")
+   
+  #Datos de benchmarks de renta fija
+  query <- paste0("SELECT id,fecha,tasa FROM indices WHERE fecha >'",as.Date(paste0(as.numeric(year)-2,"-01-01")),"'")
+  datos <- dbGetQuery(mydb,query)
+  #datos <- datos[datos$fecha %in% as.character(fechas),]
+  #CIGUB
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id LIKE '51-+CIGUB-%'")
+  datos1 <- dbGetQuery(mydb,query)
+  #CIGUMP
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha > '",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id LIKE '51-+CIGUMP-%'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #CIGULP
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id LIKE '51-+CIGULP-%'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #CIUSD
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id LIKE '51-+CIUSD-%'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #CIPLUS
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id LIKE '51-+CIPLUS-%'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #CIBOLS
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id LIKE '52-+CIBOLS-%'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #CIEQUS
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id LIKE '52-+CIEQUS-%'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #IPC
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id='RC-MEXBOL-IND'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #S&P 500
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id='RC-SPX-IND'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  #Tipo de Cambio
+  query <- paste0("SELECT id,fecha,Precio_limpio FROM prices WHERE fecha  >'",
+                  as.Date(paste0(as.numeric(year)-2,"-01-01")),"' AND"," id='*CSP-MXPUSDS-V48'")
+  datos1 <- rbind(datos1, dbGetQuery(mydb,query))
+  variable <- sapply(datos1$id,function(x) paste0("'",strsplit(x,"-")[[1]][2]))
+  datos1$Emisora <- ifelse(variable %in% c("'MEXBOL","'SPX","'MXPUSDS"),"",variable)
+  
+  file <- "//192.168.0.223//CIFONDOS/benchmarks_trimestrales.xlsm"
+  isr <- read_xlsx(file,"ISR")
+  isr <- data.frame(rbind(isr,data.frame(Fecha = as.character(date), ISR = as.character(isr$ISR[length(isr$ISR)]))))
+  isr$Fecha <- as.Date(isr$Fecha)
+  isr$ISR <- as.numeric(isr$ISR)
+  workbook <- loadWorkbook(file)
+  removeSheet(workbook,"Fondos")
+  removeSheet(workbook,"Benchmark")
+  new_sheet <- createSheet(workbook,"Fondos")
+  addDataFrame(datos1,new_sheet,row.names = FALSE)
+  new_sheet <- createSheet(workbook,"Benchmark")
+  addDataFrame(datos,new_sheet,row.names = FALSE)
+  saveWorkbook(workbook,file)
+}
+
+PrecioBono <- function(duracion, tcoupn, ytm, period=182, derivada = FALSE){
+  
+  #Coupon and ytm
+  coupn <- period*tcoupn/364
+  ytm <- period*ytm/36400
+  #Number of coupons
+  ncoupn <- ceiling(as.numeric(duracion)/period)
+  #Days until the next coupon
+  dcoupn <- as.numeric(duracion) %% period
+  
+  #Numerator and Denominator
+  if(derivada == FALSE){
+    num <- rep(coupn,ncoupn)
+    num[length(num)] <- num[length(num)] + 100
+  } else {
+    num <- seq(1,ncoupn,1)*coupn
+    num[length(num)] <- num[length(num)] + 100*ncoupn
+    num <- - num / (1 + ytm)
+  }
+  denom <- (1+ytm)^((0:(ncoupn-1))+dcoupn/period)
+  devengado <- coupn*(period-dcoupn)/period
+  p <- sum(num/denom) - devengado
+  
+  return (as.numeric(p))
+  
+}
+
+yield_to_maturity <- function(duracion,tcoupn,precio, period=182){
+  
+  #Coupon
+  coupn <- period*tcoupn/360
+  #Number of coupons
+  ncoupn <- ceiling(as.numeric(duracion)/period)
+  #Days until the next coupon
+  dcoupn <- as.numeric(duracion) %% period
+  
+  #################    Newton method    ###################
+  
+  #Function f(x) for the Newton method
+  f <- function(ytm){
+    f_x <- PrecioBono(duracion, tcoupn, ytm, period, derivada = FALSE) - precio
+    return(f_x)
+  }
+  
+  #Function f'(x) for the Newton method
+  f1 <- function(ytm){
+    f <- PrecioBono(duracion, tcoupn, ytm, period, derivada = TRUE)
+    return(f)
+  }
+  
+  #Iterations of Newton method
+  xn1 <- tcoupn
+  tol <- 1
+  while(tol > 1e-7){
+    xn <- xn1 - (f(xn1)/f1(xn1))
+    tol <- abs(xn - xn1)
+    xn1 <-  xn
+  }
+  return(xn1)
 }

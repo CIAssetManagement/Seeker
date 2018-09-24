@@ -46,23 +46,16 @@ if(diah(date) == "Habil"){
   referencia <- read_excel(d,sheet = "VECTOR")
   metamorphosis(archivo,referencia)
   
-  #Obtiene las posiciones de los contratos 50901, 50903, 50905 y 50499
+  #Obtiene las posiciones de los contratos 50499 y 52367
   system(paste0('"C:/Program Files (x86)/FIDEM/AM/AmConsola.exe" "2|cism_batch|Nueva2015|4|',
                 50499,',',clave,',',clave,'|C:/Github/Carteras_Portafolios|IMSS|"'))
   p1 <- read_xls('C:/Github/Carteras_Portafolios/IMSS.xls')
   portafolios(p1)
+  
   system(paste0('"C:/Program Files (x86)/FIDEM/AM/AmConsola.exe" "2|cism_batch|Nueva2015|4|',
-                50901,",",clave,",",clave,'|C:/Github/Carteras_Portafolios|Conservador|"'))
-  p2 <- read_xls('C:/Github/Carteras_Portafolios/Conservador.xls')
-  portafolios(p2)
-  system(paste0('"C:/Program Files (x86)/FIDEM/AM/AmConsola.exe" "2|cism_batch|Nueva2015|4|',
-                50903,",",clave,",",clave,'|C:/Github/Carteras_Portafolios|Moderado|"'))
-  p3 <- read_xls('C:/Github/Carteras_Portafolios/Moderado.xls')
-  portafolios(p3)
-  system(paste0('"C:/Program Files (x86)/FIDEM/AM/AmConsola.exe" "2|cism_batch|Nueva2015|4|',
-                50905,",",clave,",",clave,'|C:/Github/Carteras_Portafolios|Agresivo|"'))
-  p4 <- read_xls('C:/Github/Carteras_Portafolios/Agresivo.xls')
-  portafolios(p4)
+                52367,',',clave,',',clave,'|C:/Github/Carteras_Portafolios|CIASIA|"'))
+  p1 <- read_xls('C:/Github/Carteras_Portafolios/CIASIA.xls')
+  portafolios(p1)
   
   #Arreglando las carteras de los fondos
   car <- read_xls(paste0("C:/Github/Carteras/(Todos)Cartera_0_",gsub("-","",day),".xls"))
@@ -71,8 +64,7 @@ if(diah(date) == "Habil"){
   #Scrapeando el FRED, Banxico, INEGI y Valmer
   source("FRED_scraper.R",local = FALSE)
   source("Banxico_scraper.R",local = FALSE)
-  if(substr(date,9,10) == 22)
-    source("INEGI_scraper.R",local = FALSE)
+  source("INEGI_scraper.R",local = FALSE)
   source("crawlerBenchmarks.R",local = FALSE)
   
   #Alimenta la base de datos de tasas
@@ -88,8 +80,18 @@ if(diah(date) == "Habil"){
   
   #Generando archivos para comparador de fondos
   comparador(date)
+  #Generando el archivo de los rendimientos de los fondos para promoción.
+  rendimientos_promocion(date)
+  #Generando el archivo de los rendimientos de los clientes para promoción.
+  #rendimientos_clientes()
+  #Archivos para los Benchmarks
+  archivos_bench(date)
+  
   deployApp('C:/Github/ComparadorFondos',appName = 'comparadorfondos',launch.browser = FALSE)
   y
+  deployApp('C:/Github/ModelosCarteras',appName = 'comparadorcarteras',launch.browser = FALSE)
+  y
+  
   
 }else{
   cat("The day has no price or bond information!!!")

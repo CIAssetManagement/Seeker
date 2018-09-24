@@ -7,6 +7,129 @@ rD <- rsDriver(port = 4568L)
 remDr <- rD$client
 
 #### Tasa objetivo y fondeo gubernamental ####
+remDr$navigate("http://www.banxico.org.mx/SieInternet/consultarDirectorioInternetAction.do?accion=consultarCuadro&idCuadro=CF300&sector=18&locale=es")
+Sys.sleep(2)
+remDr$findElement("css selector", "#seleccionaTodasSeries")$clickElement()
+Sys.sleep(2)
+remDr$findElement("css selector", "#nodo_1_12 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_1_13 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_1_14 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_1_15 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#idTablaExportacion > tbody > tr > td:nth-child(5)")$clickElement()
+Sys.sleep(5)
+file.rename(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"),'C:/Users/MATREJO/Downloads/cetes.csv')
+
+remDr$findElement("css selector", "#seleccionaTodasSeries")$clickElement()
+Sys.sleep(2)
+remDr$findElement("css selector", "#seleccionaTodasSeries")$clickElement()
+Sys.sleep(2)
+remDr$findElement("css selector", "#nodo_1_0 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_1_1 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_1_2 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_1_3 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#idTablaExportacion > tbody > tr > td:nth-child(5)")$clickElement()
+Sys.sleep(5)
+file.rename(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"),'C:/Users/MATREJO/Downloads/cetes28.csv')
+
+
+remDr$findElement("css selector", "#seleccionaTodasSeries")$clickElement()
+Sys.sleep(2)
+remDr$findElement("css selector", "#seleccionaTodasSeries")$clickElement()
+Sys.sleep(2)
+remDr$findElement("css selector", "#nodo_4_0 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_4_1 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_4_2 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_4_3 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#idTablaExportacion > tbody > tr > td:nth-child(5)")$clickElement()
+Sys.sleep(5)
+file.rename(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"),'C:/Users/MATREJO/Downloads/bonos03.csv')
+
+remDr$findElement("css selector", "#seleccionaTodasSeries")$clickElement()
+Sys.sleep(2)
+remDr$findElement("css selector", "#seleccionaTodasSeries")$clickElement()
+Sys.sleep(2)
+remDr$findElement("css selector", "#nodo_4_4 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_4_5 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_4_6 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#nodo_4_7 > td:nth-child(2)")$clickElement()
+remDr$findElement("css selector", "#idTablaExportacion > tbody > tr > td:nth-child(5)")$clickElement()
+Sys.sleep(5)
+file.rename(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"),'C:/Users/MATREJO/Downloads/bonos35.csv')
+
+
+#Añadiendo a la base
+datos_ <- 20 #Número de datos para añadir a la base, tomar en cuenta que un archivo grande tomará mucho tiempo
+#CETES 364
+benchmarks <- read.csv('C:/Users/MATREJO/Downloads/cetes.csv',skip = 17,stringsAsFactors = FALSE)
+colnames(benchmarks) <- c("fecha","dias","precio_limpio","precio_sucio","tasa")
+benchmarks$id <- "CETES-364"
+benchmarks$fecha <- as.character(as.Date(benchmarks$fecha,format = "%d/%m/%Y"))
+benchmarks <- benchmarks[,c('id','fecha','dias','precio_sucio','precio_limpio','tasa')]
+benchmarks <- tail(benchmarks,datos_)
+for(i in seq(1,length(benchmarks$fecha),1)){
+  query <- paste0("SELECT id, fecha FROM indices WHERE id = 'CETES-364' AND fecha ='",benchmarks$fecha[i],"'")
+  rate <- dbGetQuery(mydb,query)
+  if(length(rate$id) == 0){
+    query2 <- paste0("INSERT INTO indices (id,fecha,dias,precio_sucio,precio_limpio,tasa) VALUES ('",
+                     paste(benchmarks[i,],collapse = "','"),"')")
+    dbSendQuery(mydb,query2)
+  }
+}
+#CETES 28
+benchmarks <- read.csv('C:/Users/MATREJO/Downloads/cetes28.csv',skip = 17,stringsAsFactors = FALSE)
+colnames(benchmarks) <- c("fecha","dias","precio_limpio","precio_sucio","tasa")
+benchmarks$id <- "CETES-28"
+benchmarks$fecha <- as.character(as.Date(benchmarks$fecha,format = "%d/%m/%Y"))
+benchmarks <- benchmarks[,c('id','fecha','dias','precio_sucio','precio_limpio','tasa')]
+benchmarks <- tail(benchmarks,datos_)
+for(i in seq(1,length(benchmarks$fecha),1)){
+  query <- paste0("SELECT id, fecha FROM indices WHERE id = 'CETES-28' AND fecha ='",benchmarks$fecha[i],"'")
+  rate <- dbGetQuery(mydb,query)
+  if(length(rate$id) == 0){
+    query2 <- paste0("INSERT INTO indices (id,fecha,dias,precio_sucio,precio_limpio,tasa) VALUES ('",
+                     paste(benchmarks[i,],collapse = "','"),"')")
+    dbSendQuery(mydb,query2)
+  }
+}
+#MBONOS 0-3
+benchmarks <- read.csv('C:/Users/MATREJO/Downloads/bonos03.csv',skip = 17,stringsAsFactors = FALSE)
+colnames(benchmarks) <- c("fecha","dias","precio_limpio","precio_sucio","cupon")
+benchmarks$id <- "MBONOS-0-3"
+benchmarks$fecha <- as.character(as.Date(benchmarks$fecha,format = "%d/%m/%Y"))
+benchmarks <- benchmarks[,c('id','fecha','dias','precio_sucio','precio_limpio','cupon')]
+benchmarks <- tail(benchmarks,datos_)
+benchmarks$tasa <- mapply(yield_to_maturity,as.numeric(benchmarks$dias),as.numeric(benchmarks$cupon),as.numeric(benchmarks$precio_limpio))
+benchmarks[,c(6,7)] <- benchmarks[,c(7,6)]
+for(i in seq(1,length(benchmarks$fecha),1)){
+  query <- paste0("SELECT id, fecha FROM indices WHERE id = 'MBONOS-0-3' AND fecha ='",benchmarks$fecha[i],"'")
+  rate <- dbGetQuery(mydb,query)
+  if(length(rate$id) == 0){
+    query2 <- paste0("INSERT INTO indices (id,fecha,dias,precio_sucio,precio_limpio,tasa,cupon) VALUES ('",
+                     paste(benchmarks[i,],collapse = "','"),"')")
+    dbSendQuery(mydb,query2)
+  }
+}
+#MBONOS 3-5
+benchmarks <- read.csv('C:/Users/MATREJO/Downloads/bonos35.csv',skip = 17,stringsAsFactors = FALSE)
+colnames(benchmarks) <- c("fecha","dias","precio_limpio","precio_sucio","cupon")
+benchmarks$id <- "MBONOS-3-5"
+benchmarks$fecha <- as.character(as.Date(benchmarks$fecha,format = "%d/%m/%Y"))
+benchmarks <- benchmarks[,c('id','fecha','dias','precio_sucio','precio_limpio','cupon')]
+benchmarks <- tail(benchmarks,datos_)
+benchmarks$tasa <- mapply(yield_to_maturity,as.numeric(benchmarks$dias),as.numeric(benchmarks$cupon),as.numeric(benchmarks$precio_limpio))
+benchmarks[,c(6,7)] <- benchmarks[,c(7,6)]
+for(i in seq(1,length(benchmarks$fecha),1)){
+  query <- paste0("SELECT id, fecha FROM indices WHERE id = 'MBONOS-3-5' AND fecha ='",benchmarks$fecha[i],"'")
+  rate <- dbGetQuery(mydb,query)
+  if(length(rate$id) == 0){
+    query2 <- paste0("INSERT INTO indices (id,fecha,dias,precio_sucio,precio_limpio,tasa,cupon) VALUES ('",
+                     paste(benchmarks[i,],collapse = "','"),"')")
+    dbSendQuery(mydb,query2)
+  }
+}
+Sys.sleep(2)
+
+#### Tasa objetivo y fondeo gubernamental ####
 remDr$navigate("http://www.banxico.org.mx/SieInternet/consultarDirectorioInternetAction.do?accion=consultarCuadroAnalitico&idCuadro=CA51&sectorDescripcion=Precios&locale=es")
 Sys.sleep(2)
 
@@ -54,10 +177,12 @@ fondeob <- fondeob %>% filter(nivel != "N/E")
 remDr$navigate("http://www.banxico.org.mx/SieInternet/consultarDirectorioInternetAction.do?sector=8&accion=consultarCuadro&idCuadro=CP150&locale=es")
 Sys.sleep(2)
 remDr$findElement("css selector", "#formatoCSV")$clickElement()
-Sys.sleep(5)
+Sys.sleep(6)
 
 #### Metiendo a la base de datos ####
 numdatos <- 20
+benchmarks <- read.csv(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"))
+
 udis <- tail(read.csv(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"),sep = ' '),numdatos)
 #UDI's
 for(x in udis[,1]){
@@ -97,6 +222,8 @@ for(i in seq(1,length(objetivo$id))){
     dbSendQuery(mydb,query2)
   }
 }
+
+file.remove(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"))
+
 remDr$close()
 rD$server$stop()
-file.remove(dir('C:/Users/MATREJO/Downloads', full.names=T, pattern="^Consulta_"))
