@@ -435,9 +435,6 @@ rendimientos_promocion <- function(fecha){
 
 #Función que obtiene los archivos necesarios para la app de rendimientos de los clientes
 rendimientos_clientes <- function(){
-  posiciones <- get_position(seq_Date("20140101/"))
-  posiciones <- posiciones[c("fecha","contrato","carteramodelo","reporto","tipo","id","precio","tit")]
-  save(posiciones,file = "C:/Github/ModelosRendimientos/posiciones.rds")
   
   fn <- "depositos_retiros.txt"
   if (file.exists(fn)) file.remove(fn)
